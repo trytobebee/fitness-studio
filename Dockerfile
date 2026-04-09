@@ -3,6 +3,9 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# 安装编译依赖（better-sqlite3 需要）
+RUN apk add --no-cache python3 make g++
+
 # 安装依赖
 COPY package*.json ./
 RUN npm ci
