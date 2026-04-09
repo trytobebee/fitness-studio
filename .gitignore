@@ -2,8 +2,8 @@
 node_modules/
 /.pnp
 .pnp.js
-package-lock.json
 yarn.lock
+# package-lock.json 需要被提交用于 npm ci 和 Docker 生产构建
 
 # Testing
 /coverage
