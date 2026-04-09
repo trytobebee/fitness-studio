@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  # Fitness Studio 应用
+  fitness-studio:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fitness-studio
+    restart: unless-stopped
+    ports:
+      - "3000:3000"  # 内部端口 3000，可根据需要改为其他端口
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: file:/app/data/prod.db
+      JWT_SECRET: ${JWT_SECRET:-fitness-studio-super-secret-key-2024-minimum-32-chars}
+    volumes:
+      - fitness-studio-data:/app/data  # 数据库持久化
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - fitness-network
+    # 可选：日志配置
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Nginx 反向代理（可选）
+  nginx:
+    image: nginx:alpine
+    container_name: fitness-studio-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro  # SSL 证书目录
+    depends_on:
+      - fitness-studio
+    networks:
+      - fitness-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  fitness-studio-data:
+    driver: local
+
+networks:
+  fitness-network:
+    driver: bridge
