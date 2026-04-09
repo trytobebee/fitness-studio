@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
-import { setSession } from '@/lib/auth'
+import { signToken } from '@/lib/auth'
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '手机号或密码错误' }, { status: 401 })
     }
 
-    await setSession({
+    const token = await signToken({
       userId: user.id,
       role: user.role,
       name: user.name,
@@ -46,7 +46,17 @@ export async function POST(request: NextRequest) {
     })
 
     const { passwordHash: _, ...userWithoutPassword } = user
-    return NextResponse.json({ data: userWithoutPassword })
+    const response = NextResponse.json({ data: userWithoutPassword })
+
+    response.cookies.set('auth-token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7,
+      path: '/',
+    })
+
+    return response
   } catch (error) {
     console.error('Login error:', error)
     return NextResponse.json({ error: '服务器错误' }, { status: 500 })

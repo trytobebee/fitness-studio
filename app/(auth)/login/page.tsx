@@ -25,15 +25,23 @@ export default function LoginPage() {
     setLoading(true)
     setError('')
     try {
+      console.log('发送登录请求:', { phone })
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone, password }),
       })
+      console.log('响应状态:', res.status)
       const data = await res.json()
-      if (!res.ok) { setError(data.error || '登录失败'); return }
+      console.log('响应数据:', data)
+      if (!res.ok) {
+        setError(data.error || '登录失败')
+        return
+      }
+      console.log('登录成功，跳转到:', ROLE_HOME[data.data.role])
       router.push(ROLE_HOME[data.data.role] ?? '/login')
-    } catch {
+    } catch (err) {
+      console.error('登录错误:', err)
       setError('网络错误，请重试')
     } finally {
       setLoading(false)
