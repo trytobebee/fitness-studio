@@ -1,0 +1,236 @@
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== 门店 ====================
+
+model Store {
+  id        String   @id @default(cuid())
+  name      String
+  address   String
+  phone     String?
+  latitude  Float?
+  longitude Float?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  managers         User[]           @relation("StoreManagers")
+  scheduledClasses ScheduledClass[]
+  coachStores      CoachStore[]
+
+  @@map("stores")
+}
+
+// ==================== 用户 ====================
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  phone        String   @unique
+  passwordHash String
+  role         Role     @default(CLIENT)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // 门店管理员关联（MANAGER 角色使用）
+  managedStoreId String?
+  managedStore   Store?  @relation("StoreManagers", fields: [managedStoreId], references: [id])
+
+  coachProfile  CoachProfile?
+  clientProfile ClientProfile?
+
+  @@map("users")
+}
+
+enum Role {
+  SUPER_ADMIN
+  MANAGER
+  COACH
+  CLIENT
+}
+
+// ==================== 教练档案 ====================
+
+model CoachProfile {
+  id             String  @id @default(cuid())
+  userId         String  @unique
+  bio            String?
+  specialties    String? // 逗号分隔，如 "瑜伽,普拉提"
+  experience     Int?    // 从业年限
+  certifications String? // JSON 字符串
+
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  coachStores      CoachStore[]     // 所在门店
+  scheduledClasses ScheduledClass[]
+
+  @@map("coach_profiles")
+}
+
+// 教练 ↔ 门店 多对多
+model CoachStore {
+  id       String   @id @default(cuid())
+  coachId  String
+  storeId  String
+  joinedAt DateTime @default(now())
+  isActive Boolean  @default(true)
+
+  coach CoachProfile @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  store Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@unique([coachId, storeId])
+  @@map("coach_stores")
+}
+
+// ==================== 客户档案 ====================
+
+model ClientProfile {
+  id       String    @id @default(cuid())
+  userId   String    @unique
+  birthday DateTime?
+  gender   String?   // MALE / FEMALE / OTHER
+  notes    String?   // 健康备注
+
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  creditAccounts CreditAccount[]
+  bookings       Booking[]
+
+  @@map("client_profiles")
+}
+
+// ==================== 课程种类（全局） ====================
+
+model CourseType {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  color       String   @default("#6366f1")
+  duration    Int      @default(60) // 分钟
+  maxCapacity Int      @default(10)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  scheduledClasses ScheduledClass[]
+  creditPackages   CreditPackage[]
+
+  @@map("course_types")
+}
+
+// ==================== 排课 ====================
+
+model ScheduledClass {
+  id           String   @id @default(cuid())
+  courseTypeId String
+  coachId      String
+  storeId      String
+  title        String?
+  startTime    DateTime
+  endTime      DateTime
+  location     String?  // 具体教室/场地
+  maxCapacity  Int
+  status       String   @default("OPEN") // OPEN / FULL / CANCELLED / COMPLETED
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  courseType CourseType   @relation(fields: [courseTypeId], references: [id])
+  coach      CoachProfile @relation(fields: [coachId], references: [id])
+  store      Store        @relation(fields: [storeId], references: [id])
+  bookings   Booking[]
+
+  @@index([startTime])
+  @@index([coachId])
+  @@index([storeId])
+  @@map("scheduled_classes")
+}
+
+// ==================== 预约 ====================
+
+model Booking {
+  id               String    @id @default(cuid())
+  clientProfileId  String
+  scheduledClassId String
+  status           String    @default("CONFIRMED") // CONFIRMED / CHECKED_IN / COMPLETED / CANCELLED / NO_SHOW
+  bookedBy         String?   // 操作人 userId（自约/教练代约/管理员代约）
+  checkedInAt      DateTime?
+  cancelledAt      DateTime?
+  cancelReason     String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  clientProfile  ClientProfile      @relation(fields: [clientProfileId], references: [id])
+  scheduledClass ScheduledClass     @relation(fields: [scheduledClassId], references: [id])
+  transactions   CreditTransaction[]
+
+  @@unique([clientProfileId, scheduledClassId])
+  @@index([clientProfileId])
+  @@index([scheduledClassId])
+  @@map("bookings")
+}
+
+// ==================== 课时套餐定义 ====================
+
+model CreditPackage {
+  id           String   @id @default(cuid())
+  name         String
+  courseTypeId String?  // null = 通用课时
+  credits      Int
+  price        Float
+  validDays    Int?     // null = 永久有效
+  description  String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  courseType     CourseType?     @relation(fields: [courseTypeId], references: [id])
+  creditAccounts CreditAccount[]
+
+  @@map("credit_packages")
+}
+
+// ==================== 客户课时账户 ====================
+
+model CreditAccount {
+  id               String    @id @default(cuid())
+  clientProfileId  String
+  packageId        String
+  totalCredits     Int
+  usedCredits      Int       @default(0)
+  remainingCredits Int
+  purchasedAt      DateTime  @default(now())
+  expiresAt        DateTime?
+  isActive         Boolean   @default(true)
+
+  clientProfile ClientProfile       @relation(fields: [clientProfileId], references: [id])
+  package       CreditPackage       @relation(fields: [packageId], references: [id])
+  transactions  CreditTransaction[]
+
+  @@index([clientProfileId])
+  @@map("credit_accounts")
+}
+
+// ==================== 课时流水 ====================
+
+model CreditTransaction {
+  id              String   @id @default(cuid())
+  creditAccountId String
+  bookingId       String?
+  type            String   // PURCHASE / CONSUME / REFUND / ADJUST / EXPIRE
+  amount          Int      // 正数=增加，负数=扣减
+  balanceAfter    Int
+  operatorId      String?
+  note            String?
+  createdAt       DateTime @default(now())
+
+  creditAccount CreditAccount @relation(fields: [creditAccountId], references: [id])
+  booking       Booking?      @relation(fields: [bookingId], references: [id])
+
+  @@index([creditAccountId])
+  @@map("credit_transactions")
+}
