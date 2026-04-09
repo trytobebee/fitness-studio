@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { LogoutButton } from './LogoutButton'
+import { IOSInstallGuide } from '@/components/ui/IOSInstallGuide'
 
 const ROLE_LABELS: Record<string, { label: string; variant: 'purple' | 'success' | 'info' | 'warning' }> = {
   SUPER_ADMIN: { label: '超级管理员', variant: 'purple' },
@@ -21,6 +22,7 @@ export default async function ProfilePage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <PageHeader title="我的" />
+      <IOSInstallGuide />
 
       <div className="px-4 py-4 space-y-4 mb-nav">
         {/* 头像和基本信息 */}

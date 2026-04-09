@@ -2,6 +2,22 @@
 
 如果你的服务器上已经用 Docker 部署其他服务，这个指南会帮助你用同样的方式部署 Fitness Studio。
 
+## 阿里云服务器配置建议
+
+### 最低配置（测试/小规模）
+- CPU：1 核，内存：1 GB → 容器限制 `256M`
+- 同时用户：< 50
+
+### 推荐配置（生产环境）
+- CPU：2 核，内存：2-4 GB → 容器限制 `512M`
+- 同时用户：100-500
+
+### 高性能配置
+- CPU：4 核，内存：8 GB → 容器限制 `1G`
+- 同时用户：1000+
+
+**在 `docker-compose.yml` 中修改资源限制**（见"性能调优"章节）
+
 ## 前置条件
 
 确保服务器上已安装：
@@ -239,24 +255,93 @@ docker-compose logs --since 2h fitness-studio
 
 ## 性能调优
 
-### 增加内存限制（可选）
+### 1. 根据服务器配置调整资源限制
 
-编辑 `docker-compose.yml`，在 `fitness-studio` 服务下添加：
+编辑 `docker-compose.yml` 中的 `deploy.resources`：
 
+**1 核 1GB 内存（最低配置）**
 ```yaml
 deploy:
   resources:
     limits:
+      cpus: '0.5'
+      memory: 256M
+    reservations:
+      cpus: '0.25'
+      memory: 128M
+```
+
+**2 核 2-4GB 内存（推荐配置）**
+```yaml
+deploy:
+  resources:
+    limits:
+      cpus: '1'
       memory: 512M
     reservations:
+      cpus: '0.5'
       memory: 256M
 ```
 
-### 增加工作进程
+**4 核 8GB 内存（高性能）**
+```yaml
+deploy:
+  resources:
+    limits:
+      cpus: '2'
+      memory: 1G
+    reservations:
+      cpus: '1'
+      memory: 512M
+```
+
+### 2. 优化 Nginx 工作进程
 
 编辑 `nginx.conf`：
 ```nginx
-worker_processes 4;  # 改为你的 CPU 核数
+# 设置为 CPU 核数
+worker_processes auto;  # 自动检测 CPU 核数
+
+# 或手动设置
+worker_processes 2;  # 2 核服务器
+```
+
+### 3. 优化数据库连接
+
+编辑 `docker-compose.yml` 中的环境变量：
+
+```yaml
+environment:
+  NODE_ENV: production
+  DATABASE_URL: file:/app/data/prod.db
+  # 添加 Prisma 连接池配置（适用于高并发）
+  DATABASE_POOL_TIMEOUT: 10
+```
+
+### 4. 清理和维护
+
+**定期清理未使用的镜像和容器**
+```bash
+# 清理悬空镜像
+docker image prune -f
+
+# 清理未使用的容器
+docker container prune -f
+
+# 完整清理（谨慎使用！）
+docker system prune -a
+```
+
+**监控服务器资源**
+```bash
+# 实时查看 Docker 资源使用
+docker stats
+
+# 查看容器详细信息
+docker-compose top fitness-studio
+
+# 查看容器日志大小
+du -sh /var/lib/docker/containers
 ```
 
 ## 故障排查

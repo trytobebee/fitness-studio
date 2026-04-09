@@ -22,6 +22,18 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
+    deploy:
+      # 根据服务器配置修改以下限制
+      # 最低配置（1核1GB）：限制 256M
+      # 推荐配置（2核2GB）：限制 512M
+      # 高性能（4核8GB）：限制 1G
+      resources:
+        limits:
+          cpus: '1'          # 限制 CPU 使用
+          memory: 512M       # 根据服务器内存调整
+        reservations:
+          cpus: '0.5'        # 预留最少 CPU
+          memory: 256M       # 预留最少内存
     networks:
       - fitness-network
     # 可选：日志配置
