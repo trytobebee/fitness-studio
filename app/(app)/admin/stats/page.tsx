@@ -46,7 +46,7 @@ export default async function AdminStatsPage() {
     }),
   ])
 
-  const dateStr = format(new Date(), 'yyyy年M月d日', { locale: zhCN })
+  const dateStr = format(today, 'yyyy年M月d日', { locale: zhCN })
 
   const overviewStats = [
     { label: '今日排课', value: todayClasses, sub: `本周共 ${weekClasses} 节`, icon: CalendarCheck, color: 'bg-indigo-50 text-indigo-600' },
