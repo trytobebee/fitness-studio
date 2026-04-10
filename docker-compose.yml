@@ -3,9 +3,7 @@ version: '3.8'
 services:
   # Fitness Studio 应用
   fitness-studio:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: fitness-studio:latest
     container_name: fitness-studio
     restart: unless-stopped
     ports:
