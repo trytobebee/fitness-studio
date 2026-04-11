@@ -4,8 +4,7 @@ const nextConfig: NextConfig = {
   devIndicators: {
     position: 'bottom-right',
   },
-  turbopack: {},
-  allowedDevOrigins: ['192.168.0.100'],
+  allowedDevOrigins: ['10.0.0.9', '192.168.0.100', 'localhost', '127.0.0.1'],
 };
 
 export default nextConfig;
