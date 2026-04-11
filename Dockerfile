@@ -45,6 +45,8 @@ RUN npm ci --omit=dev && \
 # 从 builder 阶段复制构建产物
 COPY --from=builder /app/.next /app/.next
 COPY --from=builder /app/public /app/public
+COPY --from=builder /app/.prisma /app/.prisma
+COPY --from=builder /app/node_modules/.prisma /app/node_modules/.prisma
 
 # 创建数据库目录
 RUN mkdir -p /app/data
