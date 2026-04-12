@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Fitness Studio 应用
   fitness-studio:
