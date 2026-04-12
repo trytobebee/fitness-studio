@@ -50,3 +50,6 @@ Thumbs.db
 
 # Misc
 .vercel
+
+# Docker
+*.tar
