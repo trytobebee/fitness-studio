@@ -37,6 +37,10 @@ RUN apk add --no-cache libstdc++
 # 只复制必要的文件
 COPY package*.json ./
 COPY prisma ./prisma
+COPY prisma.config.ts ./
+
+# 先设置 DATABASE_URL，避免 npm ci 时 prisma generate postinstall 因缺少 URL 报错
+ENV DATABASE_URL=file:/app/data/prod.db
 
 # 仅安装生产依赖（使用 --omit=dev 代替已弃用的 --only=production）
 RUN npm ci --omit=dev && \

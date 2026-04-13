@@ -1,0 +1,11 @@
+node_modules
+.next
+.git
+*.tar
+*.md
+.env
+.env.local
+.env*.local
+prisma/dev.db
+prisma/*.db
+prisma/migrations
